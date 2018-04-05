@@ -20,6 +20,7 @@ parser = configparser.RawConfigParser()
 parser.read(r"config.txt")
 student_name = parser.get("AutoGrades_Config", "student_name")
 output = parser.get("AutoGrades_Config", "line_path")
+output_gpa = parser.get("AutoGrades_Config", "gpa_line_path")
 API_URL = "https://stxavier.instructure.com/"
 API_KEY = parser.get("AutoGrades_Config", "api_key")
 
@@ -118,6 +119,8 @@ def get_grades(queue):
     # for course in canvas.get_courses():
     #     print(list(course.get_users()))
     courses = {}
+    scores = []
+    weights = []
     while True:
         try:
             for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
@@ -145,11 +148,15 @@ def get_grades(queue):
                 #     if assignment_score is None:
                 #         continue
                 #     course_assignments[assignment_name] = [assignment_score, assignment_points_possible]
-                courses[name] = {'score': score, 'weight': weight}
+                courses[name] = {'score': score}
+                scores.append(score)
+                weights.append(weight)
             break
         except ConnectionError:
             print("ConnectionError while getting grades. Trying again.")
             continue
+    courses['estimated_gpa'] = calc_total_gpa(scores, weights)
+    # print(courses['estimated_gpa'])
     queue.put(courses)
 
 
@@ -163,6 +170,8 @@ def create_graph(filename):
         skip = False
         curr = load("data\\" + time)
         for key in curr:
+            if str(key) == "estimated_gpa":
+                continue
             inttime = int(time.replace(".db", ""))
             subtime = 14400  # time to subtract
             truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
@@ -191,6 +200,38 @@ def create_graph(filename):
                 )
         )
         data.append(trace)
+    offline.plot(data, filename=filename, auto_open=False)
+
+
+def create_gpa_graph(filename):
+    files = os.listdir("data")
+    x = []
+    y = []
+    skip = False
+    for time in files:
+        skip = False
+        curr = load("data\\" + time)
+        if "estimated_gpa" not in curr:
+            continue
+        inttime = int(time.replace(".db", ""))
+        subtime = 14400  # time to subtract
+        truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
+        x.append(truetime)
+        y.append(curr['estimated_gpa'])
+        if skip:
+            continue
+    data = []
+    trace = go.Scatter(
+        x=x,
+        y=y,
+        name="Estimated_GPA",
+        line=dict(
+            color="rgb(0, 0, 0)",
+            width=3,
+            shape='hvh'
+            )
+    )
+    data.append(trace)
     offline.plot(data, filename=filename, auto_open=False)
 
 
@@ -236,12 +277,14 @@ if __name__ == '__main__':
             print("No change in grades for " + student_name + ". Updating latest one at " + strftime("%Y-%m-%d %H:%M:%S.", localtime()))
             os.rename("data\\" + current[-1], "data\\" + str(int(time())) + ".db")
             create_graph(output)
-            print("Updated plot.")
+            create_gpa_graph(output_gpa)
+            print("Updated plots.")
         else:
             save(courses, "data\\" + str(int(time())) + ".db")
             print("Updated grades for " + student_name + " at " + strftime("%Y-%m-%d %H:%M:%S.", localtime()))
             create_graph(output)
-            print("Updated plot.")
+            create_gpa_graph(output_gpa)
+            print("Updated plots.")
 
         print("Waiting for one minute.")
         sleep(60)
