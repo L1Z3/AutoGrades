@@ -12,7 +12,6 @@ from requests.exceptions import ConnectionError
 import configparser
 
 from canvasapi import Canvas
-import plotly.plotly as py
 import plotly.graph_objs as go
 import plotly.offline as offline
 
@@ -39,11 +38,11 @@ def load(path):
         return None
 
 
-def round_traditional(val, digits):
+def round_traditional(val, digits):  # this function fixes problems with precision errors in rounding
    return round(val+10**(-len(str(val))-1), digits)
 
 
-def calc_letter(percent):
+def calc_letter(percent):  # this calculates the letter grade given a certain percent
     if isinstance(percent, str):
         percent_num = float(percent.replace("%", ""))
     elif isinstance(percent, int):
@@ -97,6 +96,7 @@ def calc_gpa_for_percent(percent, weight):
         return round_traditional(unweighted_gpas[percent_num] + weight, 2)
     else:
         return round_traditional(weight, 2)
+
 
 def calc_total_gpa(percents, weights):
     if len(percents) != len(weights):
@@ -218,7 +218,8 @@ if __name__ == '__main__':
     # print(calc_total_gpa([97, 100, 100, 95, 99, 100, 100], [1, 0.5, 0.5, 0.5, 0.5, 0, 0]))
     # exit(0)
 
-
+    # I use multiprocessing here so that it can terminate it if it takes too long to get grades. This fixes an issue
+    # where it would freeze up previously.
     while True:
         while True:
             queue = multiprocessing.Queue()
