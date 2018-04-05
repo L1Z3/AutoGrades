@@ -1,0 +1,4 @@
+[AutoGrades_Config]
+student_name = [Insert Name Here]
+api_key = [Insert API Key here]
+line_path = [Insert path for output line here]
