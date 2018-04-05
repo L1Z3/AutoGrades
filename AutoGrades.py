@@ -21,6 +21,7 @@ parser.read(r"config.txt")
 student_name = parser.get("AutoGrades_Config", "student_name")
 output = parser.get("AutoGrades_Config", "line_path")
 output_gpa = parser.get("AutoGrades_Config", "gpa_line_path")
+time_offset = int(parser.get("AutoGrades_Config", "time_offset"))
 API_URL = "https://stxavier.instructure.com/"
 API_KEY = parser.get("AutoGrades_Config", "api_key")
 
@@ -173,7 +174,7 @@ def create_graph(filename):
             if str(key) == "estimated_gpa":
                 continue
             inttime = int(time.replace(".db", ""))
-            subtime = 14400  # time to subtract
+            subtime = time_offset  # time to subtract
             truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
             if key not in x:
                 x[str(key)] = [truetime]
@@ -214,7 +215,7 @@ def create_gpa_graph(filename):
         if "estimated_gpa" not in curr:
             continue
         inttime = int(time.replace(".db", ""))
-        subtime = 14400  # time to subtract
+        subtime = time_offset  # time to subtract
         truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
         x.append(truetime)
         y.append(curr['estimated_gpa'])
