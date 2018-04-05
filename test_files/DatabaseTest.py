@@ -14,7 +14,7 @@ import os
 from sys import exit
 
 API_URL = "https://stxavier.instructure.com/api/v1/"
-API_KEY = "5502~EynYcgOcfQuALbl5IiXTW1PmUYsCwtVCzYxlEMwLAL8aJoldAnGYSldeQVvdYoEO"
+API_KEY = "key was out of date (changed key, also, in preparation of going public on repo)"
 
 
 def save(data, path):
