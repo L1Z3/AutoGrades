@@ -1,4 +1,6 @@
 [AutoGrades_Config]
 student_name = [Insert Name Here]
 api_key = [Insert API Key here]
-line_path = [Insert path for output line here]
+line_path = [Insert path for output graph here]
+gpa_line_path = [Insert path for output gpa graph here]
+time_offset = [Insert here the time in seconds to offset the program ]
