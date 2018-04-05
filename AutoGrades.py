@@ -1,6 +1,3 @@
-# TODO add github support--learn how to make setup.py
-# TODO add console output on progress
-
 from sys import exit
 import os
 import pickle
