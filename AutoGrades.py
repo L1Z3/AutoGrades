@@ -163,15 +163,12 @@ def create_graph(filename):
         skip = False
         curr = load("data\\" + time)
         for key in curr:
+            inttime = int(time.replace(".db", ""))
+            subtime = 14400  # time to subtract
+            truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
             if key not in x:
-                inttime = int(time.replace(".db", ""))
-                subtime = 14400  # time to subtract
-                truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
                 x[str(key)] = [truetime]
             else:
-                inttime = int(time.replace(".db", ""))
-                subtime = 14400  # time to subtract
-                truetime = datetime.datetime.fromtimestamp(inttime-subtime)  # minus is for timezone difference + daylight savings
                 x[str(key)].append(truetime)
             if key not in y:
                 y[str(key)] = [curr[key]['score']]
