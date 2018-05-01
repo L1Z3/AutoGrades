@@ -6,6 +6,7 @@ import datetime
 from time import time, gmtime, strftime, localtime
 from time import sleep, daylight
 from requests.exceptions import ConnectionError
+from json.decoder import JSONDecodeError
 import configparser
 
 from canvasapi import Canvas
@@ -116,6 +117,8 @@ def get_grades(queue):
     # print(canvas.get_user(6893).get_enrollments()[0])
     # for course in canvas.get_courses():
     #     print(list(course.get_users()))
+    # print(canvas.get_current_user().get_colors())
+    # exit(0)
     courses = {}
     scores = []
     weights = []
@@ -153,6 +156,9 @@ def get_grades(queue):
         except ConnectionError:
             print("ConnectionError while getting grades. Trying again.")
             continue
+        except JSONDecodeError:
+            print("Unexpected JSONDecodeError when getting grades. Trying again.")
+            continue
     courses['estimated_gpa'] = calc_total_gpa(scores, weights)
     # print(courses['estimated_gpa'])
     queue.put(courses)
@@ -185,7 +191,10 @@ def create_graph(filename):
             continue
     data = []
     for key in x:
-        temp_color = hex_to_rgb(colors[key])
+        try:
+            temp_color = hex_to_rgb(colors[key])
+        except KeyError:
+            temp_color = hex_to_rgb("000000")
         # print(temp_color)
         trace = go.Scatter(
             x=x[key],
