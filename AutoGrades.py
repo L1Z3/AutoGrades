@@ -114,11 +114,6 @@ def calc_total_gpa(percents, weights):
 
 def get_grades(queue):
     canvas = Canvas(API_URL, API_KEY)
-    # print(canvas.get_user(6893).get_enrollments()[0])
-    # for course in canvas.get_courses():
-    #     print(list(course.get_users()))
-    # print(canvas.get_current_user().get_colors())
-    # exit(0)
     color_data = canvas.get_current_user().get_colors()
     colors = {}
     courses = {}
@@ -128,10 +123,9 @@ def get_grades(queue):
         try:
             for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
                 score = course.enrollments[0].get('current_period_computed_current_score')  # change to 'current_period_computed_current_score' after 3rd quarter
-                # print(course.enrollments[0])
-                # exit(0)
                 if score is None:
                     continue
+
                 name = course.name
                 if name == "Bombers 2021":
                     continue
@@ -143,14 +137,7 @@ def get_grades(queue):
                     weight = 0.5
                 elif "AP" in original_name:
                     weight = 1
-                # course_assignments = {}
-                # for assignment in course.get_assignments(include="submission"):
-                #     assignment_name = assignment.name
-                #     assignment_score = assignment.submission.get('score')
-                #     assignment_points_possible = assignment.points_possible
-                #     if assignment_score is None:
-                #         continue
-                #     course_assignments[assignment_name] = [assignment_score, assignment_points_possible]
+
                 colors[name] = color_data["custom_colors"]["course_" + str(course.id)].replace("#", "")
                 courses[name] = {'score': score}
                 scores.append(score)
