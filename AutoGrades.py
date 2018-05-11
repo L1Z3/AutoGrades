@@ -119,6 +119,8 @@ def get_grades(queue):
     #     print(list(course.get_users()))
     # print(canvas.get_current_user().get_colors())
     # exit(0)
+    color_data = canvas.get_current_user().get_colors()
+    colors = {}
     courses = {}
     scores = []
     weights = []
@@ -149,6 +151,7 @@ def get_grades(queue):
                 #     if assignment_score is None:
                 #         continue
                 #     course_assignments[assignment_name] = [assignment_score, assignment_points_possible]
+                colors[name] = color_data["custom_colors"]["course_" + str(course.id)].replace("#", "")
                 courses[name] = {'score': score}
                 scores.append(score)
                 weights.append(weight)
@@ -161,11 +164,11 @@ def get_grades(queue):
             continue
     courses['estimated_gpa'] = calc_total_gpa(scores, weights)
     # print(courses['estimated_gpa'])
-    queue.put(courses)
+    out_data = [courses, colors]
+    queue.put(out_data)
 
 
-def create_graph(filename):
-    colors = {"English S2": "FF0000", "Biology S2": "43A047", "AP World S2": "000000", "Algebra S2": "2083C5", "Scriptures S2": "F06291", "Spanish S2": "F0592B", "OC S2": "A52A2A", "IP S2": "3CA184"}
+def create_graph(filename, colors):
     files = os.listdir("data")
     x = {}
     y = {}
@@ -277,21 +280,20 @@ if __name__ == '__main__':
                 p.join()
                 continue
             break
-        courses = queue.get()
+        out_data = queue.get()
+        courses = out_data[0]
+        colors = out_data[1]
         current = os.listdir("data")
 
         if len(current) >= 2 and courses == load("data\\" + current[-1]) == load("data\\" + current[-2]):
             print("No change in grades for " + student_name + ". Updating latest one at " + strftime("%Y-%m-%d %H:%M:%S.", localtime()))
             os.rename("data\\" + current[-1], "data\\" + str(int(time())) + ".db")
-            create_graph(output)
-            create_gpa_graph(output_gpa)
-            print("Updated plots.")
         else:
             save(courses, "data\\" + str(int(time())) + ".db")
             print("Updated grades for " + student_name + " at " + strftime("%Y-%m-%d %H:%M:%S.", localtime()))
-            create_graph(output)
-            create_gpa_graph(output_gpa)
-            print("Updated plots.")
+        create_graph(output, colors)
+        create_gpa_graph(output_gpa)
+        print("Updated plots.")
 
         print("Waiting for one minute.")
         sleep(60)
