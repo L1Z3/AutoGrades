@@ -10,6 +10,7 @@ from json.decoder import JSONDecodeError
 import configparser
 
 from canvasapi import Canvas
+from canvasapi.exceptions import CanvasException
 import plotly.graph_objs as go
 import plotly.offline as offline
 
@@ -114,7 +115,15 @@ def calc_total_gpa(percents, weights):
 
 def get_grades(queue):
     canvas = Canvas(API_URL, API_KEY)
-    color_data = canvas.get_current_user().get_colors()
+    while True:
+        try:
+            color_data = canvas.get_current_user().get_colors()
+        except JSONDecodeError:
+            print("JSONDecodeError when getting colors. Trying again.")
+            continue
+        except CanvasException:
+            print("CanvasException when getting colors. Trying again.")
+        break
     colors = {}
     courses = {}
     scores = []
