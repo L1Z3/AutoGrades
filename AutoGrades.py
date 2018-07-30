@@ -13,6 +13,7 @@ from canvasapi import Canvas
 from canvasapi.exceptions import CanvasException
 import plotly.graph_objs as go
 import plotly.offline as offline
+import fileinput
 
 
 parser = configparser.RawConfigParser()
@@ -109,6 +110,9 @@ def calc_total_gpa(percents, weights):
     for percent in percents:
         gpas.append(calc_gpa_for_percent(percent, weights[i]))
         i += 1
+    if len(gpas) == 0:
+        print("Couldn't get any GPAs. This means that something is broken.")
+        exit(1)
     final_gpa = round_traditional(sum(gpas) / float(len(gpas)), 2)
     return final_gpa
 
@@ -131,7 +135,7 @@ def get_grades(queue):
     while True:
         try:
             for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
-                score = course.enrollments[0].get('current_period_computed_current_score')  # change to 'current_period_computed_current_score' after 3rd quarter
+                score = course.enrollments[0].get('computed_current_score')  # change to 'current_period_computed_current_score' for only quarter grade
                 if score is None:
                     continue
 
@@ -207,6 +211,9 @@ def create_graph(filename, colors):
         )
         data.append(trace)
     offline.plot(data, filename=filename, auto_open=False)
+    with fileinput.FileInput(filename, inplace=True, backup='.bak') as file:
+        for line in file:
+            print(line.replace("<head>", "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"), end='')
 
 
 def create_gpa_graph(filename):
@@ -239,6 +246,9 @@ def create_gpa_graph(filename):
     )
     data.append(trace)
     offline.plot(data, filename=filename, auto_open=False)
+    with fileinput.FileInput(filename, inplace=True, backup='.bak') as file:
+        for line in file:
+            print(line.replace("<head>", "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"), end='')
 
 
 def hex_to_rgb(hexa):
