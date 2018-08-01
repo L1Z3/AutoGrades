@@ -32,3 +32,11 @@ gpa_line_q4\.html
 current_line_q4\.html\.bak
 
 gpa_line_q4\.html\.bak
+
+__pycache__/GraphUser\.cpython-36\.pyc
+
+sampleconfig_old\.txt
+
+user_data/
+
+config_old\.txt
