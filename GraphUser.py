@@ -388,7 +388,8 @@ class GraphUser:
                                    "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"),
                       end='')
 
-    def update_grade_graph(self):
+
+    def update_grade_graphs(self):
         # I use multiprocessing here so that it can terminate it if it takes too long to get grades. This fixes an issue
         # where it would freeze up previously.
         while True:

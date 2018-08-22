@@ -10,7 +10,7 @@ if __name__ == '__main__':
         i = 0
         for user in os.listdir(GraphUser.data_path.replace("$id", "")):
             curr_user = GraphUser.get_user(int(user))
-            p.append(multiprocessing.Process(target=curr_user.update_grade_graph))
+            p.append(multiprocessing.Process(target=curr_user.update_grade_graphs))
             p[i].start()
             i += 1
         print("Waiting for one minute.")
