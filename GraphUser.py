@@ -266,20 +266,31 @@ class GraphUser:
         while True:
             try:
                 for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
-                    score = course.enrollments[0].get(
-                        'computed_current_score')  # change to 'current_period_computed_current_score' for only quarter grade
+                    if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
+                        continue
+                    score = course.attributes['enrollments'][0].get(
+                        'current_period_computed_current_score')  # change to 'current_period_computed_current_score' for only quarter grade
                     if score is None:
                         continue
 
                     name = course.name
+                    if "original_name" in course.attributes:
+                        original_name = course.attributes['original_name']
+                        name = course.attributes['name']
+                    elif "name" in course.attributes:
+                        original_name = course.attributes['name']
+                        name = original_name
+                    else:
+                        print("Name does not exist. This shouldn't happen. Exiting!")
+                        exit(1)
+                    # TODO add functionality to only use selected courses
                     # print(name)
                     if name == "Bombers 2021":
                         continue
 
-                    if " S2" not in name:  # this is to prevent Semester 1 courses from being included
-                        continue  # TODO make this not work this way
+                    # if " S2" not in name:  # this is to prevent Semester 1 courses from being included
+                    #     continue  # TODO make this not work this way
 
-                    original_name = course.original_name
                     weight = 0
                     if "Accelerated" in original_name or "Honors" in original_name:
                         weight = 0.5
