@@ -357,7 +357,7 @@ class GraphUser:
             )
             data.append(trace)
         offline.plot(data, filename=self.line_path, auto_open=False)
-        with fileinput.FileInput(self.line_path, inplace=True, backup='.bak') as file:
+        with fileinput.FileInput(self.line_path, inplace=True) as file:
             for line in file:
                 print(line.replace("<head>",
                                    "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"),
@@ -393,7 +393,7 @@ class GraphUser:
         )
         data.append(trace)
         offline.plot(data, filename=self.gpa_path, auto_open=False)
-        with fileinput.FileInput(self.gpa_path, inplace=True, backup='.bak') as file:
+        with fileinput.FileInput(self.gpa_path, inplace=True) as file:
             for line in file:
                 print(line.replace("<head>",
                                    "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"),
