@@ -13,7 +13,7 @@ if __name__ == '__main__':
             p.append(multiprocessing.Process(target=curr_user.update_grade_graphs))
             p[i].start()
             i += 1
-        print("Waiting for one minute.")
+        print("\nStarted updating grades. Going again in one minute.")
         sleep(60)
         for j in p:
             if j.is_alive():
