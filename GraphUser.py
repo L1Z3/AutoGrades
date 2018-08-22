@@ -116,6 +116,25 @@ class GraphUser:
         else:
             raise InvalidAccessToken("Given api_key \"" + api_key + "\" is not to this account.")
 
+    def get_course_names(self):
+        canvas = Canvas(API_URL, self.api_key)
+        courses = canvas.get_current_user().get_courses()
+        course_names = []
+        for course in courses:
+            try:
+                # print(course.attributes)
+                if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
+                    continue
+                elif "original_name" in course.attributes:
+                    course_names.append(course.attributes["original_name"])
+                elif "name" in course.attributes:
+                    course_names.append(course.attributes["name"])
+            except AttributeError:
+                print("Attribute error while getting course name. Going to next one.")
+                continue
+        # print(dir(courses[1]))
+        return course_names
+
     @staticmethod
     def save(data, path):
         with open(path, 'wb') as handle:
