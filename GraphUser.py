@@ -11,6 +11,7 @@ import plotly.offline as offline
 import fileinput
 from time import time, strftime, localtime
 import multiprocessing
+import re
 
 API_URL = "https://stxavier.instructure.com/"
 
@@ -58,8 +59,9 @@ class GraphUser:
                 os.mkdir(cls.data_path.replace("$id", ""))
             os.mkdir(data_path)
             os.mkdir(data_path + "\\data")
-        # graph_dirs = line_path.split("\\")
-        # TODO make this automatically create folders
+        # this mess of regex and replacing gets rid of everything to create the folders TODO fix this
+        graph_dir = re.sub("\\\\(?:.(?!\\\\))+\\.html", "", line_path).replace(str(id), "")
+
 
         # makes user config if it does not exist
         if not os.path.exists(data_path + "\\user_config.txt"):
