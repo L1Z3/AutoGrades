@@ -354,7 +354,9 @@ class GraphUser:
                 )
             )
             data.append(trace)
-        offline.plot(data, filename=self.line_path, auto_open=False)
+        layout = go.Layout(showlegend=True)
+        fig = go.Figure(data=data, layout=layout)
+        offline.plot(fig, filename=self.line_path, auto_open=False)
         with fileinput.FileInput(self.line_path, inplace=True) as file:
             for line in file:
                 print(line.replace("<head>",
