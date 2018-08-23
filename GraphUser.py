@@ -62,7 +62,6 @@ class GraphUser:
         # this mess of regex and replacing gets rid of everything to create the folders TODO fix this
         graph_dir = re.sub("\\\\(?:.(?!\\\\))+\\.html", "", line_path).replace(str(id), "")
 
-
         # makes user config if it does not exist
         if not os.path.exists(data_path + "\\user_config.txt"):
             with open(data_path + "\\user_config.txt", "w"): pass
@@ -309,10 +308,8 @@ class GraphUser:
                 print("Unexpected JSONDecodeError when getting grades. Trying again.")
                 continue
         courses['estimated_gpa'] = GraphUser.calc_total_gpa(scores, weights)
-        # print(courses['estimated_gpa'])
         out_data = [courses, colors]
         queue.put(out_data)
-        # return out_data
 
     def create_graph(self, colors):
         files = os.listdir(self.db_path)
@@ -343,8 +340,9 @@ class GraphUser:
             try:
                 temp_color = GraphUser.hex_to_rgb(colors[key])
             except KeyError:
-                temp_color = GraphUser.hex_to_rgb("000000")
+                temp_color = GraphUser.hex_to_rgb("000000")  # Default to black if colors are not available
             # print(temp_color)
+
             trace = go.Scatter(
                 x=x[key],
                 y=y[key],
@@ -398,7 +396,6 @@ class GraphUser:
                 print(line.replace("<head>",
                                    "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"),
                       end='')
-
 
     def update_grade_graphs(self):
         # I use multiprocessing here so that it can terminate it if it takes too long to get grades. This fixes an issue
