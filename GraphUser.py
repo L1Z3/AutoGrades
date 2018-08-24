@@ -5,6 +5,7 @@ import configparser
 import os
 from json.decoder import JSONDecodeError
 import datetime
+import calendar
 import pickle
 import plotly.graph_objs as go
 import plotly.offline as offline
@@ -31,8 +32,6 @@ class GraphUser:
     gpa_path = parser.get("AutoGrades_Config", "gpa_line_path")
     if "$id" not in gpa_path:
         raise Exception("\"$id\" is not in gpa line path. Please fix the config.")
-
-    time_offset = int(parser.get("AutoGrades_Config", "time_offset"))
 
     def __init__(self, api_key, public, id, name, email, data_path, line_path, gpa_path):
         self.api_key = api_key
@@ -322,9 +321,11 @@ class GraphUser:
                 if str(key) == "estimated_gpa":
                     continue
                 inttime = int(time.replace(".db", ""))
-                subtime = self.time_offset  # time to subtract
-                truetime = datetime.datetime.fromtimestamp(
-                    inttime - subtime)  # minus is for timezone difference + daylight savings
+                # this next line is a hacked together line of code that subtracts the local time from the utc time
+                # to calculate the correct value here instead of me specifying it manually. This allows it to
+                # automatically correct for daylight savings.
+                subtime = int(round((calendar.timegm(datetime.datetime.now().utctimetuple()) - calendar.timegm(datetime.datetime.utcnow().utctimetuple())) / 10.0)) * 10
+                truetime = datetime.datetime.fromtimestamp(inttime + subtime)  # minus is for timezone difference + daylight savings
                 if key not in x:
                     x[str(key)] = [truetime]
                 else:
@@ -373,9 +374,11 @@ class GraphUser:
             if "estimated_gpa" not in curr:
                 continue
             inttime = int(time.replace(".db", ""))
-            subtime = self.time_offset  # time to subtract
-            truetime = datetime.datetime.fromtimestamp(
-                inttime - subtime)  # minus is for timezone difference + daylight savings
+            # this next line is a hacked together line of code that subtracts the local time from the utc time
+            # to calculate the correct value here instead of me specifying it manually. This allows it to
+            # automatically correct for daylight savings.
+            subtime = int(round((calendar.timegm(datetime.datetime.now().utctimetuple()) - calendar.timegm(datetime.datetime.utcnow().utctimetuple())) / 10.0)) * 10
+            truetime = datetime.datetime.fromtimestamp(inttime + subtime)  # minus is for timezone difference + daylight savings
             x.append(truetime)
             y.append(curr['estimated_gpa'])
             if skip:

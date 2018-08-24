@@ -2,4 +2,3 @@
 data_path = [Insert path for data storage here, with "$id" as user id]
 line_path = [Insert path for output graph here, with "$id" as user id]
 gpa_line_path = [Insert path for output gpa graph here, with "$id" as user id]
-time_offset = [Insert here the time in seconds to offset the program ]
