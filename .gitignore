@@ -48,3 +48,5 @@ graphs/6699/
 graphs/6893/
 
 user_data_old/
+
+*.pyc

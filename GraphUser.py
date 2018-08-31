@@ -266,9 +266,17 @@ class GraphUser:
                 for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
                     if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
                         continue
+                    course_id = course.attributes['enrollments'][0].get('course_id')
                     score = course.attributes['enrollments'][0].get(
-                        'current_period_computed_current_score')  # change to 'current_period_computed_current_score' for only quarter grade
-                    if score is None:
+                        'current_period_computed_current_score')  # change to 'current_period_computed_current_score' for only quarter grade T
+                    total_score = course.attributes['enrollments'][0].get(
+                        'computed_current_score')
+                    if score is None and total_score is None:
+                        continue
+                    elif score is None:  # TODO this won't really work in Quarters 2 and 4. I'll have to come up with something else then.
+                        score = total_score
+                    period_name = course.attributes['enrollments'][0].get('current_grading_period_title')
+                    if period_name is None or "Quarter" not in period_name:
                         continue
 
                     name = course.name
