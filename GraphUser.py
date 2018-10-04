@@ -6,13 +6,12 @@ import os
 from json.decoder import JSONDecodeError
 import datetime
 import calendar
-import pickle
 import plotly.graph_objs as go
 import plotly.offline as offline
 import fileinput
 from time import time, strftime, localtime
 import multiprocessing
-import re
+import json
 
 API_URL = "https://stxavier.instructure.com/"
 
@@ -138,20 +137,6 @@ class GraphUser:
         return course_names
 
     @staticmethod
-    def save(data, path):
-        with open(path, 'wb') as handle:
-            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    @staticmethod
-    def load(path):
-        if os.path.isfile(path):
-            with open(path, 'rb') as f:
-                return pickle.load(f)
-        else:
-            open(path, 'a').close()
-            return None
-
-    @staticmethod
     def round_traditional(val, digits):  # this function fixes problems with precision errors in rounding
         return round(val + 10 ** (-len(str(val)) - 1), digits)
 
@@ -214,16 +199,10 @@ class GraphUser:
             return GraphUser.round_traditional(weight, 2)
 
     @staticmethod
-    def calc_total_gpa(percents, weights):
-        if len(percents) != len(weights):
-            print("There are not the same number of percents and weights.")
-            print("Fix this.")
-            exit(0)
+    def calc_total_gpa(courses, scores):
         gpas = []
-        i = 0
-        for percent in percents:
-            gpas.append(GraphUser.calc_gpa_for_percent(percent, weights[i]))
-            i += 1
+        for course in courses:
+            gpas.append(GraphUser.calc_gpa_for_percent(scores[course], courses[course]["weight"]))
         if len(gpas) == 0:
             print("Couldn't get any GPAs. This means that something is broken.")
             exit(1)
@@ -247,6 +226,37 @@ class GraphUser:
         green = "".join(greenl)
         return [int(red, 16), int(green, 16), int(blue, 16)]
 
+    def read_course_data(self):
+        try:
+            with open(self.data_path + "\\course_data.json", "r") as read_file:
+                course_data = json.load(read_file)
+            fixed_course_data = {}
+        except FileNotFoundError:
+            return {}
+        for key in course_data:
+            fixed_course_data[int(key)] = course_data[key]
+        return fixed_course_data
+
+    def write_course_data(self, course_data):
+        with open(self.data_path + "\\course_data.json", "w") as write_file:
+            json.dump(course_data, write_file, indent=4)
+
+    def read_score_data(self, filename):
+        with open(self.db_path + "\\" + str(filename), "r") as read_file:
+            score_data = json.load(read_file)
+        fixed_score_data = {}
+        for key in score_data:
+            if key == "estimated_gpa":
+                fixed_score_data[key] = score_data[key]
+            else:
+                fixed_score_data[int(key)] = score_data[key]
+
+        return fixed_score_data
+
+    def write_score_data(self, score_data, filename):
+        with open(self.db_path + "\\" + str(filename), "w") as write_file:
+            json.dump(score_data, write_file, indent=4)
+
     def get_grades(self, queue):
         canvas = Canvas(API_URL, self.api_key)
         while True:
@@ -259,18 +269,18 @@ class GraphUser:
                 print("CanvasException when getting colors. Trying again.")
                 continue
             break
-        colors = {}
         courses = {}
-        scores = []
-        weights = []
+        scores = {}
         while True:
             try:
                 for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
                     if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
                         continue
-                    course_id = course.attributes['enrollments'][0].get('course_id')
+                    # course_id = course.attributes['enrollments'][0].get('course_id')
+                    course_id = course.id
+                    # print(course_id)
                     score = course.attributes['enrollments'][0].get(
-                        'current_period_computed_current_score')  # change to 'current_period_computed_current_score' for only quarter grade T
+                        'current_period_computed_current_score')
                     total_score = course.attributes['enrollments'][0].get(
                         'computed_current_score')
                     if score is None and total_score is None:
@@ -293,11 +303,6 @@ class GraphUser:
                         exit(1)
                     # TODO add functionality to only use selected courses
                     # print(name)
-                    if name == "Bombers 2021":
-                        continue
-
-                    # if " S2" not in name:  # this is to prevent Semester 1 courses from being included
-                    #     continue  # TODO make this not work this way
 
                     weight = 0
                     if "Accelerated" in original_name or "Honors" in original_name:
@@ -305,10 +310,8 @@ class GraphUser:
                     elif "AP" in original_name:
                         weight = 1
 
-                    colors[name] = color_data["custom_colors"]["course_" + str(course.id)].replace("#", "")
-                    courses[name] = {'score': score}
-                    scores.append(score)
-                    weights.append(weight)
+                    courses[course_id] = {"original_name": original_name, "name": name, "weight": weight, "color": color_data["custom_colors"]["course_" + str(course_id)].replace("#", "")}
+                    scores[course_id] = score
                 break
             except ConnectionError:
                 print("ConnectionError while getting grades. Trying again.")
@@ -316,48 +319,53 @@ class GraphUser:
             except JSONDecodeError:
                 print("Unexpected JSONDecodeError when getting grades. Trying again.")
                 continue
-        courses['estimated_gpa'] = GraphUser.calc_total_gpa(scores, weights)
-        out_data = [courses, colors]
-        queue.put(out_data)
+        scores["estimated_gpa"] = GraphUser.calc_total_gpa(courses, scores)
+        # out_data = [scores, estimated_gpa]
+        disk_course_data = self.read_course_data()
+        if disk_course_data != courses:
+            # Here I'm overwriting the data for each course with the new data
+            # I'm doing it this way so that a course that happens to have not been retrieved on this cycle won't get its data deleted
+            for course_id in courses:
+                disk_course_data[course_id] = courses[course_id]
+            self.write_course_data(disk_course_data)
+        queue.put(scores)
 
-    def create_graph(self, colors):
+    def create_graph(self):
         files = os.listdir(self.db_path)
+        course_data = self.read_course_data()
         x = {}
         y = {}
         for time in files:
-            skip = False
-            curr = GraphUser.load(self.db_path + "\\" + time)
-            for key in curr:
-                if str(key) == "estimated_gpa":
+            curr = self.read_score_data(time)
+            for course_id in curr:
+                if str(course_id) == "estimated_gpa":
                     continue
-                inttime = int(time.replace(".db", ""))
+                inttime = int(time.replace(".json", ""))
                 # this next line is a hacked together line of code that subtracts the local time from the utc time
                 # to calculate the correct value here instead of me specifying it manually. This allows it to
                 # automatically correct for daylight savings.
                 subtime = int(round((calendar.timegm(datetime.datetime.now().utctimetuple()) - calendar.timegm(datetime.datetime.utcnow().utctimetuple())) / 10.0)) * 10
                 truetime = datetime.datetime.fromtimestamp(inttime + subtime)  # minus is for timezone difference + daylight savings
-                if key not in x:
-                    x[str(key)] = [truetime]
+
+                if course_id not in x:
+                    x[course_id] = [truetime]
                 else:
-                    x[str(key)].append(truetime)
-                if key not in y:
-                    y[str(key)] = [curr[key]['score']]
+                    x[course_id].append(truetime)
+                if course_id not in y:
+                    y[course_id] = [curr[course_id]]
                 else:
-                    y[str(key)].append(curr[key]['score'])
-            if skip:
-                continue
+                    y[course_id].append(curr[course_id])
         data = []
-        for key in x:
+        for course_id in x:
             try:
-                temp_color = GraphUser.hex_to_rgb(colors[key])
+                temp_color = GraphUser.hex_to_rgb(course_data[course_id]["color"])
             except KeyError:
                 temp_color = GraphUser.hex_to_rgb("000000")  # Default to black if colors are not available
-            # print(temp_color)
-
+            name = course_data[course_id]["name"]
             trace = go.Scatter(
-                x=x[key],
-                y=y[key],
-                name=key,
+                x=x[course_id],
+                y=y[course_id],
+                name=name,
                 line=dict(
                     color=("rgb(" + str(temp_color[0]) + ", " + str(temp_color[1]) + ", " + str(temp_color[2]) + ")"),
                     width=3,
@@ -381,11 +389,10 @@ class GraphUser:
         x = []
         y = []
         for time in files:
-            skip = False
-            curr = GraphUser.load(self.db_path + "\\" + time)
+            curr = self.read_score_data(time)
             if "estimated_gpa" not in curr:
                 continue
-            inttime = int(time.replace(".db", ""))
+            inttime = int(time.replace(".json", ""))
             # this next line is a hacked together line of code that subtracts the local time from the utc time
             # to calculate the correct value here instead of me specifying it manually. This allows it to
             # automatically correct for daylight savings.
@@ -393,8 +400,6 @@ class GraphUser:
             truetime = datetime.datetime.fromtimestamp(inttime + subtime)  # minus is for timezone difference + daylight savings
             x.append(truetime)
             y.append(curr['estimated_gpa'])
-            if skip:
-                continue
         data = []
         trace = go.Scatter(
             x=x,
@@ -428,18 +433,20 @@ class GraphUser:
                 p.join()
                 continue
             break
-        out_data = queue.get()
-        courses = out_data[0]
-        colors = out_data[1]
-        current = os.listdir(self.db_path)
+        scores = queue.get()
+        try:
+            current = os.listdir(self.db_path)
+        except FileNotFoundError:
+            os.mkdir(self.db_path)
+            current = []
 
-        if len(current) >= 2 and courses == self.load(self.db_path + "\\" + current[-1]) == self.load(self.db_path + "\\" + current[-2]):
+        if len(current) >= 2 and scores == self.read_score_data(current[-1]) == self.read_score_data(current[-2]):
             print("No change in grades for " + self.name + ". Updating latest one at " + strftime("%Y-%m-%d %H:%M:%S.", localtime()))
-            os.rename(self.db_path + "\\" + current[-1], self.db_path + "\\" + str(int(time())) + ".db")
+            os.rename(self.db_path + "\\" + current[-1], self.db_path + "\\" + str(int(time())) + ".json")
         else:
-            self.save(courses, self.db_path + "\\" + str(int(time())) + ".db")
+            self.write_score_data(scores, str(int(time())) + ".json")
             print("Updated grades for " + self.name + " at " + strftime("%Y-%m-%d %H:%M:%S.", localtime()))
-        self.create_graph(colors)
+        self.create_graph()
         self.create_gpa_graph()
         print("Updated plots for " + self.name + ".")
 
