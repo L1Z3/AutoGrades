@@ -1,54 +1,17 @@
 
 \.idea/
 
-data/
-
-old_data/
-
-old_data_s1/
-
-1508894044\.db
-
-CanvasAPITest\.py
-
-chromedriver\.exe
-
-client_secret\.json
-
 config\.txt
 
-current_line\.html
-
-data\.db
-
-ublock\.crx
-
-current_line_s2\.html
-
-current_line_q4\.html
-
-gpa_line_q4\.html
-
-current_line_q4\.html\.bak
-
-gpa_line_q4\.html\.bak
-
-__pycache__/GraphUser\.cpython-36\.pyc
-
-sampleconfig_old\.txt
+__pycache__/
 
 user_data/
 
-config_old\.txt
-
-graphs/6680/
-
-graphs/6699/
-
-graphs/6893/
-
-user_data_old/
+graphs/
 
 *.pyc
 
-backup/
+Old/
+
+test_files/
+DataConverter\.py
