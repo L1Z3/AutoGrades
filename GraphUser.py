@@ -58,8 +58,10 @@ class GraphUser:
                 os.mkdir(cls.data_path.replace("$id", ""))
             os.mkdir(data_path)
             os.mkdir(data_path + "\\data")
-        # this mess of regex and replacing gets rid of everything to create the folders TODO fix this
-        graph_dir = re.sub("\\\\(?:.(?!\\\\))+\\.html", "", line_path).replace(str(id), "")
+
+        graph_dir = os.path.dirname(line_path)
+        if not os.path.exists(graph_dir):
+            os.mkdir(graph_dir)
 
         # makes user config if it does not exist
         if not os.path.exists(data_path + "\\user_config.txt"):
@@ -365,6 +367,8 @@ class GraphUser:
             data.append(trace)
         layout = go.Layout(showlegend=True)
         fig = go.Figure(data=data, layout=layout)
+        if not os.path.exists(os.path.dirname(self.line_path)):
+            os.mkdir(os.path.dirname(self.line_path))
         offline.plot(fig, filename=self.line_path, auto_open=False)
         with fileinput.FileInput(self.line_path, inplace=True) as file:
             for line in file:
