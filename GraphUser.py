@@ -136,12 +136,18 @@ class GraphUser:
             # get API key from config
             api_key = parser.get("User_Config", "api_key")
             # Check if api_key is valid
-            try:
-                canvas = Canvas(API_URL, api_key)
-                canvas.get_current_user()
-            except InvalidAccessToken:
-                print("Access token has expired. Continuing for now.")
-                # TODO email user or something
+            while True:
+                try:
+                    canvas = Canvas(API_URL, api_key)
+                    canvas.get_current_user()
+                except InvalidAccessToken:
+                    print("Access token has expired. Trying again for now.")
+                    # TODO email user or something
+                    continue
+                except ConnectionError:
+                    print("ConnectionError while getting user info from Canvas. Trying again.")
+                    continue
+                break
 
             # get basic info about user from config
             public = parser.get("User_Config", "public")
