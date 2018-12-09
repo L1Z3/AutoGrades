@@ -6,7 +6,10 @@ import os
 from json.decoder import JSONDecodeError
 import datetime
 import calendar
-import plotly.graph_objs as go
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import plotly.graph_objs as go
 import plotly.offline as offline
 import fileinput
 from time import time, strftime, localtime
