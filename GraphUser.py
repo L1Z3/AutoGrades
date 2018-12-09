@@ -6,7 +6,10 @@ import os
 from json.decoder import JSONDecodeError
 import datetime
 import calendar
-import plotly.graph_objs as go
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import plotly.graph_objs as go
 import plotly.offline as offline
 import fileinput
 from time import time, strftime, localtime
@@ -136,12 +139,18 @@ class GraphUser:
             # get API key from config
             api_key = parser.get("User_Config", "api_key")
             # Check if api_key is valid
-            try:
-                canvas = Canvas(API_URL, api_key)
-                canvas.get_current_user()
-            except InvalidAccessToken:
-                print("Access token has expired. Continuing for now.")
-                # TODO email user or something
+            while True:
+                try:
+                    canvas = Canvas(API_URL, api_key)
+                    canvas.get_current_user()
+                except InvalidAccessToken:
+                    print("Access token has expired. Trying again for now.")
+                    # TODO email user or something
+                    continue
+                except ConnectionError:
+                    print("ConnectionError while getting user info from Canvas. Trying again.")
+                    continue
+                break
 
             # get basic info about user from config
             public = parser.get("User_Config", "public")
@@ -328,11 +337,17 @@ class GraphUser:
         """
         Converts a hexadecimal color string to an RGB value
 
-        :param hexa: String for hex color in format "FFFFFF"
+        :param hexa: String for hex color in format "FFFFFF" or "FFF"
         :return: list contain red, green, and blue values in decimal
         """
         # convert string to list of characters
         hexa = list(hexa)
+        # TIL that there's a shorthand for hex colors with 3 digits
+        # This accounts for that case
+        if len(hexa) == 3:
+            hexa.insert(0, hexa[0])
+            hexa.insert(2, hexa[2])
+            hexa.insert(4, hexa[4])
         # lists storing indiviual characters corresponding to each color
         redl = []
         greenl = []
