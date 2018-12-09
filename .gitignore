@@ -15,3 +15,5 @@ Old/
 
 test_files/
 DataConverter\.py
+
+venv/
