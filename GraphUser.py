@@ -337,11 +337,17 @@ class GraphUser:
         """
         Converts a hexadecimal color string to an RGB value
 
-        :param hexa: String for hex color in format "FFFFFF"
+        :param hexa: String for hex color in format "FFFFFF" or "FFF"
         :return: list contain red, green, and blue values in decimal
         """
         # convert string to list of characters
         hexa = list(hexa)
+        # TIL that there's a shorthand for hex colors with 3 digits
+        # This accounts for that case
+        if len(hexa) == 3:
+            hexa.insert(0, hexa[0])
+            hexa.insert(2, hexa[2])
+            hexa.insert(4, hexa[4])
         # lists storing indiviual characters corresponding to each color
         redl = []
         greenl = []
