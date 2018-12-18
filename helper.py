@@ -104,7 +104,7 @@ def calc_total_gpa(courses, scores):
     gpas = []
     # iterate through courses in course data
     for course in courses:
-        # Add the current GPA to the list, which is retrievied from
+        # Add the current GPA to the list, which is retrieved from
         # calc_gpa_for_percent based on the current score and course
         gpas.append(calc_gpa_for_percent(scores[course], courses[course]["weight"]))
     if len(gpas) == 0:
