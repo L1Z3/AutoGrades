@@ -294,13 +294,28 @@ class GraphUser:
 
         return response['grading_periods']
 
-    def get_grades(self, queue):
+    @staticmethod
+    def get_grading_period(course, period_name):
+        """
+        Gets the grading period ID of a specific period name for a course.
+
+        :param course: Course object to get period for
+        :param period_name: Name of grading period
+        :return: ID for grading period with given name; -1 if grading period is not found
+        """
+        for period_dict in GraphUser.get_grading_periods(course):
+            # print(str(period_dict["title"]) + "\t" + str(period_name))
+            if period_dict["title"] == period_name:
+                return int(period_dict["id"])
+        return -1
+
+    def get_grades(self, queue, period=None):
         """
         Retrieves grades and course data for current user from Canvas, and formats them as dictionaries.
 
-        Likely the most eventful method in this whole program.
         :param queue: Something that needs to be in here for multiprocessing to work properly.
                       (I don't know, I just watched a YouTube tutorial)
+        :param period: String for name of grading period to get grades for. Default is using the current grading period.
         :return: None (returns through queue instead of traditional return)
         """
         canvas = Canvas(API_URL, self.api_key)
@@ -321,31 +336,14 @@ class GraphUser:
         while True:
             try:
                 # Loop through all courses for the particular user, and include scores in that retrieval
-                for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores", "term", "account"])):
+                for course in list(canvas.get_courses(include=["total_scores", "current_grading_period_scores"])):
                     # If the course can't be accessed by the user because it has been date restricted,
                     # ignore that course.
                     if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
                         continue
+
                     # Assign course ID from course attribute to variable course_id
                     course_id = course.id
-                    # Retrieve score for current quarter
-                    score = course.attributes['enrollments'][0].get(
-                        'current_period_computed_current_score')
-                    # Retrieve score for current semester
-                    total_score = course.attributes['enrollments'][0].get(
-                        'computed_current_score')
-                    # If there's no score for the current course, skip the course
-                    if score is None and total_score is None:
-                        continue
-                    # If there's no quarter score, but there is a semester score, then use the semester score.
-                    # This was done to fix an issue where sometime the quarter score would just randomly disappear.
-                        # I have absolutely no idea why this happened, but this fixes it for Q1 and Q3
-                    # TODO this won't really work in Quarters 2 and 4. I'll have to come up with something else then.
-                    # elif score is None:
-                    #     score = total_score
-
-                    # Get the name of the current grading period from Canvas
-                    period_name = course.attributes['enrollments'][0].get('current_grading_period_title')
 
                     # set name to the course attribute name
                     name = course.name
@@ -363,41 +361,42 @@ class GraphUser:
                     else:
                         print("Name does not exist. This shouldn't happen. Exiting!")
                         raise NameError
-                    # TODO add functionality to only use selected courses
 
-                    # TODO put this back--this is a temporary solution for the end of the quarter
-                    # If there isn't a grading period, or the grading period isn't a quarter, (e.g. Summer),
-                    # then skip the course.
-                    # if period_name is None or "Quarter" not in period_name:
-                    #     continue
+                    # Get the current grading period id from Canvas if not specified by the user
+                    if period is None:
+                        period_id = course.attributes['enrollments'][0].get('current_grading_period_id')
+                    # Get the ID of the specified grading period
+                    else:
+                        period_id = GraphUser.get_grading_period(course, period)
+                    # Skip if the specified grading period isn't found
+                    if period_id == -1:
+                        continue
 
-                    # TODO get rid of this--this is temporary solution for the end of the quarter
-                    # if "Summer Geometry" in name or "Science Olympiad" in name or "Men in Black" in name:
-                    #     continue
-                    # print("Course object: " + str(dir(course)))
-                    # print("Course attributes: " + str(course.attributes))
-                    # print("Has Grading Periods: " + str(course.has_grading_periods))
-                    # # print("Grading Periods: " + str(course.grading_periods))
-                    # print("Has Weighted Grading Periods: " + str(course.has_weighted_grading_periods))
-                    # print("Multiple Grading Periods Enabled: " + str(course.multiple_grading_periods_enabled))
-                    # print("Term: " + str(course.term))
-                    # print("Account: " + str(course.account))
-                    print("Enrollments: " + str(list(canvas.get_current_user().get_enrollments(grading_period_id=int(self.get_grading_periods(course)[0]['id'])))))
-                    print("Grading Periods: " + str(self.get_grading_periods(course)))
-                    print("\n")
-                    exit(0)
+                    # Get list of enrollment objects for the current course
+                    # that are for the current user and the specified grading period id
+                    course_enrollments = list(course.get_enrollments(user_id=self.id, grading_period_id=period_id))
+                    if len(course_enrollments) == 0:
+                        continue
+                    current_enrollment = course_enrollments[0]
 
-                    # by default, there's a zero GPA weight on the class
-                    weight = 0
+                    # If there is no grade for the current course, skip it.
+                    if current_enrollment is None or "current_score" not in current_enrollment.grades or current_enrollment.grades["current_score"] is None:
+                        continue
+
+                    score = current_enrollment.grades["current_score"]
+
                     # If the class is an Honors(/Accelerated) class, then the weight is 0.5
                     if "Accelerated" in original_name or "Honors" in original_name:
                         weight = 0.5
                     # If the class is an AP class, then the weight is 1
                     elif "AP" in original_name:
                         weight = 1
-
+                    # by default, there's a zero GPA weight on the class
+                    else:
+                        weight = 0
                     # assign dictionary containing course information for current course to key that is the course id
                     courses[course_id] = {"original_name": original_name, "name": name, "weight": weight, "color": color_data["custom_colors"]["course_" + str(course_id)].replace("#", "")}
+
                     # assign score for current course to corresponding ID in scores dictionary
                     scores[course_id] = score
                 break
@@ -407,6 +406,7 @@ class GraphUser:
             except JSONDecodeError:
                 print("Unexpected JSONDecodeError when getting grades. Trying again.")
                 continue
+
         # put the estimated gpa in the scores dictionary
         scores["estimated_gpa"] = calc_total_gpa(courses, scores)
         # Read the currently stored course data
@@ -620,8 +620,6 @@ class GraphUser:
         self.create_graph()
         self.create_gpa_graph()
         print("Updated plots for " + self.name + ".")
-
-
 
 
 # Do nothing if the file is ran directly.
