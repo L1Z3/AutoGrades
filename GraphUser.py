@@ -60,7 +60,6 @@ class GraphUser:
         self.line_path = line_path
         self.gpa_path = gpa_path
 
-    # add a user to be tracked; takes
     @classmethod
     def create_user(cls, api_key, public=False):
         """
