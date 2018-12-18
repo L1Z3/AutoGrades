@@ -60,7 +60,6 @@ class GraphUser:
         self.line_path = line_path
         self.gpa_path = gpa_path
 
-    # add a user to be tracked; takes
     @classmethod
     def create_user(cls, api_key, public=False):
         """
@@ -278,13 +277,45 @@ class GraphUser:
         with open(self.db_path + "\\" + str(filename), "w") as write_file:
             json.dump(score_data, write_file, indent=4)
 
-    def get_grades(self, queue):
+    @staticmethod
+    def get_grading_periods(course):
+        """
+        Gets grading periods for a course.
+
+        This method is modeled after similar ones in the Canvas API, but the canvas
+        API does not have one for listing grading periods, so here we are.
+        :param course: Course object to get grading periods for
+        :return: List of dictionaries of grading periods.
+        """
+        response = course._requester.request(
+            'GET',
+            'courses/{}/grading_periods'.format(course.id)
+        ).json()
+
+        return response['grading_periods']
+
+    @staticmethod
+    def get_grading_period(course, period_name):
+        """
+        Gets the grading period ID of a specific period name for a course.
+
+        :param course: Course object to get period for
+        :param period_name: Name of grading period
+        :return: ID for grading period with given name; -1 if grading period is not found
+        """
+        for period_dict in GraphUser.get_grading_periods(course):
+            # print(str(period_dict["title"]) + "\t" + str(period_name))
+            if period_dict["title"] == period_name:
+                return int(period_dict["id"])
+        return -1
+
+    def get_grades(self, queue, period=None):
         """
         Retrieves grades and course data for current user from Canvas, and formats them as dictionaries.
 
-        Likely the most eventful method in this whole program.
         :param queue: Something that needs to be in here for multiprocessing to work properly.
                       (I don't know, I just watched a YouTube tutorial)
+        :param period: String for name of grading period to get grades for. Default is using the current grading period.
         :return: None (returns through queue instead of traditional return)
         """
         canvas = Canvas(API_URL, self.api_key)
@@ -310,29 +341,9 @@ class GraphUser:
                     # ignore that course.
                     if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
                         continue
+
                     # Assign course ID from course attribute to variable course_id
                     course_id = course.id
-                    # Retrieve score for current quarter
-                    score = course.attributes['enrollments'][0].get(
-                        'current_period_computed_current_score')
-                    # Retrieve score for current semester
-                    total_score = course.attributes['enrollments'][0].get(
-                        'computed_current_score')
-                    # If there's no score for the current course, skip the course
-                    if score is None and total_score is None:
-                        continue
-                    # If there's no quarter score, but there is a semester score, then use the semester score.
-                    # This was done to fix an issue where sometime the quarter score would just randomly disappear.
-                        # I have absolutely no idea why this happened, but this fixes it for Q1 and Q3
-                    # TODO this won't really work in Quarters 2 and 4. I'll have to come up with something else then.
-                    elif score is None:
-                        score = total_score
-                    # Get the name of the current grading period from Canvas
-                    period_name = course.attributes['enrollments'][0].get('current_grading_period_title')
-                    # If there isn't a grading period, or the grading period isn't a quarter, (e.g. Summer),
-                    # then skip the course.
-                    if period_name is None or "Quarter" not in period_name:
-                        continue
 
                     # set name to the course attribute name
                     name = course.name
@@ -350,19 +361,42 @@ class GraphUser:
                     else:
                         print("Name does not exist. This shouldn't happen. Exiting!")
                         raise NameError
-                    # TODO add functionality to only use selected courses
 
-                    # by default, there's a zero GPA weight on the class
-                    weight = 0
+                    # Get the current grading period id from Canvas if not specified by the user
+                    if period is None:
+                        period_id = course.attributes['enrollments'][0].get('current_grading_period_id')
+                    # Get the ID of the specified grading period
+                    else:
+                        period_id = GraphUser.get_grading_period(course, period)
+                    # Skip if the specified grading period isn't found
+                    if period_id == -1:
+                        continue
+
+                    # Get list of enrollment objects for the current course
+                    # that are for the current user and the specified grading period id
+                    course_enrollments = list(course.get_enrollments(user_id=self.id, grading_period_id=period_id))
+                    if len(course_enrollments) == 0:
+                        continue
+                    current_enrollment = course_enrollments[0]
+
+                    # If there is no grade for the current course, skip it.
+                    if current_enrollment is None or "current_score" not in current_enrollment.grades or current_enrollment.grades["current_score"] is None:
+                        continue
+
+                    score = current_enrollment.grades["current_score"]
+
                     # If the class is an Honors(/Accelerated) class, then the weight is 0.5
                     if "Accelerated" in original_name or "Honors" in original_name:
                         weight = 0.5
                     # If the class is an AP class, then the weight is 1
                     elif "AP" in original_name:
                         weight = 1
-
+                    # by default, there's a zero GPA weight on the class
+                    else:
+                        weight = 0
                     # assign dictionary containing course information for current course to key that is the course id
                     courses[course_id] = {"original_name": original_name, "name": name, "weight": weight, "color": color_data["custom_colors"]["course_" + str(course_id)].replace("#", "")}
+
                     # assign score for current course to corresponding ID in scores dictionary
                     scores[course_id] = score
                 break
@@ -372,6 +406,7 @@ class GraphUser:
             except JSONDecodeError:
                 print("Unexpected JSONDecodeError when getting grades. Trying again.")
                 continue
+
         # put the estimated gpa in the scores dictionary
         scores["estimated_gpa"] = calc_total_gpa(courses, scores)
         # Read the currently stored course data
@@ -553,7 +588,7 @@ class GraphUser:
         # where it would freeze up previously.
         while True:
             queue = multiprocessing.Queue()
-            p = multiprocessing.Process(target=self.get_grades, args=(queue,))
+            p = multiprocessing.Process(target=self.get_grades, args=(queue, "Quarter 2"))
             p.start()
             # Terminate get_grades() if it takes more than 30 seconds to complete
             p.join(30)
