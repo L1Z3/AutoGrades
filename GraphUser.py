@@ -588,7 +588,7 @@ class GraphUser:
         # where it would freeze up previously.
         while True:
             queue = multiprocessing.Queue()
-            p = multiprocessing.Process(target=self.get_grades, args=(queue,))
+            p = multiprocessing.Process(target=self.get_grades, args=(queue, "Quarter 2"))
             p.start()
             # Terminate get_grades() if it takes more than 30 seconds to complete
             p.join(30)
