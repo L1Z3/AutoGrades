@@ -341,7 +341,6 @@ class GraphUser:
                     # ignore that course.
                     if "access_restricted_by_date" in course.attributes and course.attributes["access_restricted_by_date"] is True:
                         continue
-
                     # Assign course ID from course attribute to variable course_id
                     course_id = course.id
 
@@ -379,10 +378,13 @@ class GraphUser:
                         continue
                     current_enrollment = course_enrollments[0]
 
+                    if name == "PE S1":
+                        print(name + "\t" + str(current_enrollment.grades))
+                        print(name + "\t" + str(course.attributes['enrollments'][0]))
+
                     # If there is no grade for the current course, skip it.
                     if current_enrollment is None or "current_score" not in current_enrollment.grades or current_enrollment.grades["current_score"] is None:
                         continue
-
                     score = current_enrollment.grades["current_score"]
 
                     # If the class is an Honors(/Accelerated) class, then the weight is 0.5
@@ -588,7 +590,7 @@ class GraphUser:
         # where it would freeze up previously.
         while True:
             queue = multiprocessing.Queue()
-            p = multiprocessing.Process(target=self.get_grades, args=(queue, "Quarter 2"))
+            p = multiprocessing.Process(target=self.get_grades, args=(queue, "Quarter 3"))
             p.start()
             # Terminate get_grades() if it takes more than 30 seconds to complete
             p.join(30)
