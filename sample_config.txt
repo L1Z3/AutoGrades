@@ -1,0 +1,4 @@
+[AutoGrades_Config]
+data_path = [Insert path for data storage here, with "$id" as user id, ex: "user_data\$id"]
+line_path = [Insert path for output graph here, with "$id" as user id, ex: "graphs\$id\grades_q2.html"]
+gpa_line_path = [Insert path for output gpa graph here, with "$id" as user id, ex: "graphs\$id\gpa_q2.html"]
