@@ -156,8 +156,13 @@ class GraphUser:
             public = parser.get("User_Config", "public")
             name = parser.get("User_Config", "name")
             email = parser.get("User_Config", "email")
-            line_path = cls.line_path.replace("$id", str(id))
-            gpa_path = cls.gpa_path.replace("$id", str(id))
+            if parser.has_option("User_Config", "custom_line_path_id"):
+                custom_line_path_id = parser.get("User_Config", "custom_line_path_id")
+                line_path = cls.line_path.replace("$id", custom_line_path_id)
+                gpa_path = cls.gpa_path.replace("$id", custom_line_path_id)
+            else:
+                line_path = cls.line_path.replace("$id", str(id))
+                gpa_path = cls.gpa_path.replace("$id", str(id))
 
             return cls(api_key, public, id, name, email, data_path, line_path, gpa_path)
         else:

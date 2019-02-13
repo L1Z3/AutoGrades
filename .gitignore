@@ -17,3 +17,4 @@ test_files/
 DataConverter\.py
 
 venv/
+SpecificGradesTest\.py
