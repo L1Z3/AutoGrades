@@ -4,4 +4,4 @@ public = [True or False, supposed to determine whether to make grades public or 
 id = [Canvas ID of user, retrieved from Canvas]
 name = [First + Last name of user, retrieved from Canvas]
 email = [Email of user, retrieved from Canvas]
-custom_line_path_id = [a custom string to use in lieu of user id for output graphs]
+custom_line_path_id = [(optional) a custom string to use in lieu of user id for output graphs]
