@@ -486,7 +486,7 @@ class GraphUser:
                 temp_color = hex_to_rgb(course_data[course_id]["color"])
             else:
                 # Default to black if colors are not available
-                temp_color = hex_to_rgb("000000")
+                temp_color = hex_to_rgb("FFFFFF")
             # set local variable name to name of course from course data
             name = course_data[course_id]["name"]
             # create a line with plotly for the current course ID
@@ -509,6 +509,8 @@ class GraphUser:
         # this makes it show the legend even when there's only one course being tracked
         # (it only shows the legend when two or more courses are on the graph without this line)
         layout = go.Layout(showlegend=True)
+        # DARK THEME, OH YES
+        layout.template = "plotly_dark"
         # create final graph object with plotly
         fig = go.Figure(data=data, layout=layout)
         # make the graph directory if it doesn't exist, just in case
@@ -567,15 +569,19 @@ class GraphUser:
             y=y,
             name="Estimated_GPA",
             line=dict(
-                color="rgb(0, 0, 0)",
+                color="rgb(255, 255, 255)",
                 width=3,
                 shape='hvh'
             )
         )
         # Add estimated gpa line to final graph data
         data.append(trace)
+        layout = go.Layout()
+        # DARK THEME, OH YES
+        layout.template = "plotly_dark"
+        fig = go.Figure(data=data, layout=layout)
         # Make GPA graph
-        offline.plot(data, filename=self.gpa_path, auto_open=False)
+        offline.plot(fig, filename=self.gpa_path, auto_open=False)
         # add in javascript to the graph file so that it automatically refreshes every 10 minutes on the client side
         with fileinput.FileInput(self.gpa_path, inplace=True) as file:
             for line in file:
