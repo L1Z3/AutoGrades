@@ -520,11 +520,12 @@ class GraphUser:
         # create the graph with plotly
         offline.plot(fig, filename=self.line_path, auto_open=False)
         # add in javascript to the graph file so that it automatically refreshes every 10 minutes on the client side
+        # also add in CSS to make background color match dark theme
         with fileinput.FileInput(self.line_path, inplace=True) as file:
             for line in file:
+                # This print statement is necessary. It's a weird hacky thing that makes it be able to modify the line variable.
                 print(line.replace("<head>",
-                                   "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"),
-                      end='')
+                             "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script><style>body {background-color: #111111;}</style>"), end="")
 
     def create_gpa_graph(self):
         """
@@ -586,9 +587,9 @@ class GraphUser:
         # add in javascript to the graph file so that it automatically refreshes every 10 minutes on the client side
         with fileinput.FileInput(self.gpa_path, inplace=True) as file:
             for line in file:
+                # This print statement is necessary. It's a weird hacky thing that makes it be able to modify the line variable.
                 print(line.replace("<head>",
-                                   "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script>"),
-                      end='')
+                             "<head><script type=\"text/javascript\">setTimeout(function(){window.location.reload(1);}, 600000);</script><style>body {background-color: #111111;}</style>"), end="")
 
     def update_grade_graphs(self):
         """
