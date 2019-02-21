@@ -508,7 +508,8 @@ class GraphUser:
         # layout specifying to show the legend
         # this makes it show the legend even when there's only one course being tracked
         # (it only shows the legend when two or more courses are on the graph without this line)
-        layout = go.Layout(showlegend=True)
+        # Also set the hovermode to compare by default, which makes the graph easier to use
+        layout = go.Layout(showlegend=True, hovermode="x")
         # DARK THEME, OH YES
         layout.template = "plotly_dark"
         # create final graph object with plotly
