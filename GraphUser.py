@@ -578,7 +578,8 @@ class GraphUser:
         )
         # Add estimated gpa line to final graph data
         data.append(trace)
-        layout = go.Layout()
+        # make compare on hover the default, which makes it so that you can see GPA without directly hovering over line
+        layout = go.Layout(hovermode="x")
         # DARK THEME, OH YES
         layout.template = "plotly_dark"
         fig = go.Figure(data=data, layout=layout)
