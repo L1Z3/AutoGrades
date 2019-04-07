@@ -16,6 +16,7 @@ from time import time, strftime, localtime
 import multiprocessing
 import json
 from helper import *
+from dateutil import tz
 
 # API url for St. Xavier's Canvas
 API_URL = "https://stxavier.instructure.com/"
@@ -452,26 +453,21 @@ class GraphUser:
                 # if the estimated gpa is encountered, skip it
                 if str(course_id) == "estimated_gpa":
                     continue
-                # removes the file extension and converts the unix time to an integer (this is in UTC)
-                inttime = int(time.replace(".json", ""))
-                # this next line is a hacked together line of code that subtracts the local time from the utc time
-                # to calculate the correct value here instead of me specifying it manually. This allows it to
-                # automatically correct for daylight savings.
-                # (subtime is the difference between UTC and the unix time adjusted for timezone and daylight savings)
-                subtime = int(round((calendar.timegm(datetime.datetime.now().utctimetuple()) - calendar.timegm(datetime.datetime.utcnow().utctimetuple())) / 10.0)) * 10
-                # The way this works also probably means that after a daylight-savings change,
-                # the displayed times on the graph that were before the change are probably off.
-                # I have not tested this yet, but I'm pretty sure it will happen
-                # TODO figure this out
-                # truetime is local unix time for given UTC time (i.e. adjusted for timezone and daylight savings)
-                truetime = datetime.datetime.fromtimestamp(inttime + subtime)
+                # remove the file extension and converts the unix time to an integer (this is in UTC)
+                utcinttime = int(time.replace(".json", ""))
+                # convert timestamp to datetime object
+                utctime = datetime.datetime.fromtimestamp(utcinttime)
+                # add timezone info to datetime object
+                utctime = utctime.replace(tzinfo=tz.tzutc())
+                # convert UTC time to local timezone
+                localtime = utctime.astimezone(tz.tzlocal())
 
                 # if the course id doesn't already have an x value, create a list with the current time
                 if course_id not in x:
-                    x[course_id] = [truetime]
+                    x[course_id] = [localtime]
                 # if the course id does have an x value, append the current time to the list
                 else:
-                    x[course_id].append(truetime)
+                    x[course_id].append(localtime)
                 # if the course id doesn't already have a y value, create a list with the current score
                 if course_id not in y:
                     y[course_id] = [current_score_data[course_id]]
@@ -547,21 +543,16 @@ class GraphUser:
             # if the estimated gpa is not in the current data file, skip it
             if "estimated_gpa" not in current_score_data:
                 continue
-            # removes the file extension and converts the unix time to an integer (this is in UTC)
-            inttime = int(time.replace(".json", ""))
-            # this next line is a hacked together line of code that subtracts the local time from the utc time
-            # to calculate the correct value here instead of me specifying it manually. This allows it to
-            # automatically correct for daylight savings.
-            # (subtime is the difference between UTC and the unix time adjusted for timezone and daylight savings)
-            subtime = int(round((calendar.timegm(datetime.datetime.now().utctimetuple()) - calendar.timegm(datetime.datetime.utcnow().utctimetuple())) / 10.0)) * 10
-            # The way this works also probably means that after a daylight-savings change,
-            # the displayed times on the graph that were before the change are probably off.
-            # I have not tested this yet, but I'm pretty sure it will happen
-            # TODO figure this out
-            # truetime is local unix time for given UTC time (i.e. adjusted for timezone and daylight savings)
-            truetime = datetime.datetime.fromtimestamp(inttime + subtime)
+            # remove the file extension and converts the unix time to an integer (this is in UTC)
+            utcinttime = int(time.replace(".json", ""))
+            # convert timestamp to datetime object
+            utctime = datetime.datetime.fromtimestamp(utcinttime)
+            # add timezone info to datetime object
+            utctime = utctime.replace(tzinfo=tz.tzutc())
+            # convert UTC time to local timezone
+            localtime = utctime.astimezone(tz.tzlocal())
             # add current time to x values
-            x.append(truetime)
+            x.append(localtime)
             # add current estimated gpa to y values
             y.append(current_score_data['estimated_gpa'])
         data = []
